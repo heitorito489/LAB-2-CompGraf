@@ -420,95 +420,128 @@ int main(int argc, char* argv[])
         glUniform1i(g_object_id_uniform, PLANE);
         DrawVirtualObject("the_plane");
 
-float current_time = (float)glfwGetTime();
-        float period = 12.0f; // Tempo exato (em segundos) para um ciclo completo de QUALQUER coelho
+        float current_time = (float)glfwGetTime();
+        float period = 12.0f; // Tempo para ciclo completo
         float s = 0.4f; 
 
-        // ==========================================================
-        // 1. O RETÂNGULO VERDE (Esteira de 24 unidades)
-        // ==========================================================
-        glUniform1i(g_object_id_uniform, BUNNY);
-        glUniform1i(g_surface_type_uniform, JADE_SURFACE);
+// 1. CORREÇÃO DA ALTURA BASE (Repouso exato no solo)
+        auto CalculateJumpY = [](float t) -> float {
+            float start_drag = 0.20f; 
+            float end_drag = 0.80f;   
+            float max_height = 0.35f; 
+            float base_y = -0.65f;    // O valor exato onde as patas tocam o plano
+            
+            if (t < start_drag || t > end_drag) return base_y; 
+            
+            float jump_t = (t - start_drag) / (end_drag - start_drag);
+            return base_y + max_height * sin(jump_t * 3.141592f);
+        };
 
-        // Velocidade linear: Perímetro 24.0 dividido por 12 segundos
+        auto LerpAngle = [](float a0, float a1, float blend) -> float {
+            float delta = a1 - a0;
+            while (delta > 3.141592f) delta -= 2.0f * 3.141592f;
+            while (delta < -3.141592f) delta += 2.0f * 3.141592f;
+            return a0 + delta * blend;
+        };
+
+       // 2. CORREÇÃO DA BOINA (Ajuste fino final de 10%)
+        auto DrawBunnyWithBeret = [&](float x, float y, float z, float angle, int surface_type) {
+            glm::mat4 model_bunny = Matrix_Translate(x, y, z) * Matrix_Rotate_Y(angle) * Matrix_Scale(s, s, s);
+            glUniformMatrix4fv(g_model_uniform, 1, GL_FALSE, glm::value_ptr(model_bunny));
+            glUniform1i(g_surface_type_uniform, surface_type);
+            glUniform1i(g_object_id_uniform, BUNNY);
+            DrawVirtualObject("the_bunny");
+
+            // X avançou de -0.42f para -0.45f
+            // Y desceu de 0.62f para 0.58f
+            // Z deslocou de -0.06f para -0.09f
+            glm::mat4 model_boina = model_bunny * Matrix_Translate(-0.45f, 0.58f, -0.09f) * Matrix_Scale(0.4f, 0.15f, 0.4f);
+            glUniformMatrix4fv(g_model_uniform, 1, GL_FALSE, glm::value_ptr(model_boina));
+            glUniform1i(g_surface_type_uniform, RED_VELVET_SURFACE);
+            glUniform1i(g_object_id_uniform, SPHERE);
+            DrawVirtualObject("the_sphere");
+        };
+
+        // ==========================================================
+        // O RETÂNGULO VERDE
+        // ==========================================================
         float green_velocity = 24.0f / period; 
 
         for (int i = 0; i < 24; ++i) {
             float d = fmod(i * 1.0f + current_time * green_velocity, 24.0f);
-            float x, z, angle;
+            float x, z, angle, next_angle, t_edge;
 
-            if (d < 7.0f) {
-                x = -3.5f + d;
-                z = -2.5f;
-                angle = 3.141592f;
-            } else if (d < 12.0f) {
-                x = 3.5f;
-                z = -2.5f + (d - 7.0f);
-                angle = 3.141592f / 2.0f;
-            } else if (d < 19.0f) {
-                x = 3.5f - (d - 12.0f);
-                z = 2.5f;
-                angle = 0.0f;
-            } else {
-                x = -3.5f;
-                z = 2.5f - (d - 19.0f);
-                angle = -3.141592f / 2.0f;
+            if (d < 7.0f) { 
+                x = -3.5f + d; z = -2.5f; 
+                angle = 3.141592f; next_angle = 3.141592f / 2.0f;
+                t_edge = d / 7.0f;
+            } else if (d < 12.0f) { 
+                x = 3.5f; z = -2.5f + (d - 7.0f); 
+                angle = 3.141592f / 2.0f; next_angle = 0.0f;
+                t_edge = (d - 7.0f) / 5.0f;
+            } else if (d < 19.0f) { 
+                x = 3.5f - (d - 12.0f); z = 2.5f; 
+                angle = 0.0f; next_angle = -3.141592f / 2.0f;
+                t_edge = (d - 12.0f) / 7.0f;
+            } else { 
+                x = -3.5f; z = 2.5f - (d - 19.0f); 
+                angle = -3.141592f / 2.0f; next_angle = -3.141592f; 
+                t_edge = (d - 19.0f) / 5.0f;
             }
 
-            glm::mat4 model = Matrix_Translate(x, 0.0f, z) * Matrix_Rotate_Y(angle) * Matrix_Scale(s, s, s);
-            glUniformMatrix4fv(g_model_uniform, 1, GL_FALSE, glm::value_ptr(model));
-            DrawVirtualObject("the_bunny");
+            float blend = 0.0f;
+            // Suaviza a rotação aproveitando o novo arrasto (últimos 20%)
+            if (t_edge > 0.80f) blend = (t_edge - 0.80f) / 0.20f;
+            float final_angle = LerpAngle(angle, next_angle, blend);
+            float y = CalculateJumpY(t_edge);
+
+            DrawBunnyWithBeret(x, y, z, final_angle, JADE_SURFACE);
         }
 
         // ==========================================================
-        // 2. O LOSANGO AMARELO (Esteira paramétrica com 14 coelhos)
+        // O LOSANGO AMARELO
         // ==========================================================
-        glUniform1i(g_surface_type_uniform, GOLD_SURFACE);
-        
-        float wy = 2.6f;
+        float wy = 3.0f; // 3. LARGURA ESTENDIDA: Aproximamos os vértices laterais ao verde
         float dy = 1.8f;
-        
-        // Velocidade paramétrica: Domínio 4.0 (4 arestas) dividido por 12 segundos
         float yellow_velocity = 4.0f / period; 
         
         for (int i = 0; i < 14; ++i) {
             float spacing = 4.0f / 14.0f;
             float u = fmod(i * spacing + current_time * yellow_velocity, 4.0f);
             int edge = (int)u;
-            float t = u - edge;
+            float t = u - edge; 
 
-            float start_x, start_z, end_x, end_z, angle;
+            float start_x, start_z, end_x, end_z, angle, next_angle;
             
             if (edge == 0) {
                 start_x = 0.0f; start_z = -dy; end_x = wy; end_z = 0.0f;
-                angle = 3.0f * 3.141592f / 4.0f;
+                angle = 3.0f * 3.141592f / 4.0f; next_angle = 3.141592f / 4.0f;
             } else if (edge == 1) {
                 start_x = wy; start_z = 0.0f; end_x = 0.0f; end_z = dy;
-                angle = 3.141592f / 4.0f;
+                angle = 3.141592f / 4.0f; next_angle = -3.141592f / 4.0f;
             } else if (edge == 2) {
                 start_x = 0.0f; start_z = dy; end_x = -wy; end_z = 0.0f;
-                angle = -3.141592f / 4.0f;
+                angle = -3.141592f / 4.0f; next_angle = -3.0f * 3.141592f / 4.0f;
             } else {
                 start_x = -wy; start_z = 0.0f; end_x = 0.0f; end_z = -dy;
-                angle = -3.0f * 3.141592f / 4.0f;
+                angle = -3.0f * 3.141592f / 4.0f; next_angle = 3.0f * 3.141592f / 4.0f;
             }
 
             float x = start_x + t * (end_x - start_x);
             float z = start_z + t * (end_z - start_z);
 
-            glm::mat4 model = Matrix_Translate(x, 0.0f, z) * Matrix_Rotate_Y(angle) * Matrix_Scale(s, s, s);
-            glUniformMatrix4fv(g_model_uniform, 1, GL_FALSE, glm::value_ptr(model));
-            DrawVirtualObject("the_bunny");
+            float blend = 0.0f;
+            if (t > 0.80f) blend = (t - 0.80f) / 0.20f;
+            float final_angle = LerpAngle(angle, next_angle, blend);
+            float y = CalculateJumpY(t);
+
+            DrawBunnyWithBeret(x, y, z, final_angle, GOLD_SURFACE);
         }
 
         // ==========================================================
-        // 3. O CÍRCULO AZUL (Órbita polar contínua)
+        // O CÍRCULO AZUL
         // ==========================================================
-        glUniform1i(g_surface_type_uniform, BLUE_PLASTIC_SURFACE);
-        
-        float rb = 0.9f;
-        
-        // Velocidade angular: Circunferência 2*PI dividida por 12 segundos
+        float rb = 1.15f; // Raio expandido de 0.9f para 1.15f para melhorar a proporção
         float blue_velocity = (2.0f * 3.141592f) / period; 
         
         for (int i = 0; i < 8; ++i) {
@@ -518,9 +551,12 @@ float current_time = (float)glfwGetTime();
             
             float angle = -theta + (3.141592f / 2.0f); 
             
-            glm::mat4 model = Matrix_Translate(x, 0.0f, z) * Matrix_Rotate_Y(angle) * Matrix_Scale(s, s, s);
-            glUniformMatrix4fv(g_model_uniform, 1, GL_FALSE, glm::value_ptr(model));
-            DrawVirtualObject("the_bunny");
+            float jump_cycle_length = 3.141592f / 2.0f;
+            float t_jump = fmod(theta, jump_cycle_length) / jump_cycle_length;
+            
+            float y = CalculateJumpY(t_jump);
+            
+            DrawBunnyWithBeret(x, y, z, angle, BLUE_PLASTIC_SURFACE);
         }
 
         // Imprimimos na tela os ângulos de Euler que controlam a rotação do
