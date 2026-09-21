@@ -420,117 +420,109 @@ int main(int argc, char* argv[])
         glUniform1i(g_object_id_uniform, PLANE);
         DrawVirtualObject("the_plane");
 
-  // ==========================================================
-        // 1. O RETÂNGULO VERDE (24 coelhos - Borda)
+float current_time = (float)glfwGetTime();
+        float period = 12.0f; // Tempo exato (em segundos) para um ciclo completo de QUALQUER coelho
+        float s = 0.4f; 
+
+        // ==========================================================
+        // 1. O RETÂNGULO VERDE (Esteira de 24 unidades)
         // ==========================================================
         glUniform1i(g_object_id_uniform, BUNNY);
         glUniform1i(g_surface_type_uniform, JADE_SURFACE);
 
-        float s = 0.4f; 
-        
-        // Aresta Superior (8 coelhos): movendo para a DIREITA (+X)
-        for (int i = 0; i < 8; ++i) {
-            float x = -3.15f + i * 0.9f; 
-            float z = -2.5f;
-            float angle = 3.141592f; // 180 graus (Focinho para +X)
-            glm::mat4 model = Matrix_Translate(x, 0.0f, z) * Matrix_Rotate_Y(angle) * Matrix_Scale(s, s, s);
-            glUniformMatrix4fv(g_model_uniform, 1, GL_FALSE, glm::value_ptr(model));
-            DrawVirtualObject("the_bunny");
-        }
-        
-        // Aresta Direita (4 coelhos): movendo para BAIXO (+Z)
-        for (int i = 0; i < 4; ++i) {
-            float x = 3.5f;
-            float z = -1.5f + i * 1.0f; 
-            float angle = 3.141592f / 2.0f; // +90 graus (Focinho para +Z)
-            glm::mat4 model = Matrix_Translate(x, 0.0f, z) * Matrix_Rotate_Y(angle) * Matrix_Scale(s, s, s);
-            glUniformMatrix4fv(g_model_uniform, 1, GL_FALSE, glm::value_ptr(model));
-            DrawVirtualObject("the_bunny");
-        }
-        
-        // Aresta Inferior (8 coelhos): movendo para a ESQUERDA (-X)
-        for (int i = 0; i < 8; ++i) {
-            float x = 3.15f - i * 0.9f; 
-            float z = 2.5f;
-            float angle = 0.0f; // 0 graus (Focinho para -X)
-            glm::mat4 model = Matrix_Translate(x, 0.0f, z) * Matrix_Rotate_Y(angle) * Matrix_Scale(s, s, s);
-            glUniformMatrix4fv(g_model_uniform, 1, GL_FALSE, glm::value_ptr(model));
-            DrawVirtualObject("the_bunny");
-        }
-        
-        // Aresta Esquerda (4 coelhos): movendo para CIMA (-Z)
-        for (int i = 0; i < 4; ++i) {
-            float x = -3.5f;
-            float z = 1.5f - i * 1.0f; 
-            float angle = -3.141592f / 2.0f; // -90 graus (Focinho para -Z)
+        // Velocidade linear: Perímetro 24.0 dividido por 12 segundos
+        float green_velocity = 24.0f / period; 
+
+        for (int i = 0; i < 24; ++i) {
+            float d = fmod(i * 1.0f + current_time * green_velocity, 24.0f);
+            float x, z, angle;
+
+            if (d < 7.0f) {
+                x = -3.5f + d;
+                z = -2.5f;
+                angle = 3.141592f;
+            } else if (d < 12.0f) {
+                x = 3.5f;
+                z = -2.5f + (d - 7.0f);
+                angle = 3.141592f / 2.0f;
+            } else if (d < 19.0f) {
+                x = 3.5f - (d - 12.0f);
+                z = 2.5f;
+                angle = 0.0f;
+            } else {
+                x = -3.5f;
+                z = 2.5f - (d - 19.0f);
+                angle = -3.141592f / 2.0f;
+            }
+
             glm::mat4 model = Matrix_Translate(x, 0.0f, z) * Matrix_Rotate_Y(angle) * Matrix_Scale(s, s, s);
             glUniformMatrix4fv(g_model_uniform, 1, GL_FALSE, glm::value_ptr(model));
             DrawVirtualObject("the_bunny");
         }
 
         // ==========================================================
-        // 2. O LOSANGO AMARELO (16 coelhos - Intermediário)
+        // 2. O LOSANGO AMARELO (Esteira paramétrica com 14 coelhos)
         // ==========================================================
         glUniform1i(g_surface_type_uniform, GOLD_SURFACE);
         
         float wy = 2.6f;
         float dy = 1.8f;
         
-        for (int edge = 0; edge < 4; ++edge) {
+        // Velocidade paramétrica: Domínio 4.0 (4 arestas) dividido por 12 segundos
+        float yellow_velocity = 4.0f / period; 
+        
+        for (int i = 0; i < 14; ++i) {
+            float spacing = 4.0f / 14.0f;
+            float u = fmod(i * spacing + current_time * yellow_velocity, 4.0f);
+            int edge = (int)u;
+            float t = u - edge;
+
             float start_x, start_z, end_x, end_z, angle;
             
-            // Fixando os ângulos empiricamente de acordo com as diagonais horárias
             if (edge == 0) {
-                // Topo -> Direita (Vetor: +X, +Z)
                 start_x = 0.0f; start_z = -dy; end_x = wy; end_z = 0.0f;
-                angle = 3.0f * 3.141592f / 4.0f; // 135 graus
-            } 
-            else if (edge == 1) {
-                // Direita -> Base (Vetor: -X, +Z)
+                angle = 3.0f * 3.141592f / 4.0f;
+            } else if (edge == 1) {
                 start_x = wy; start_z = 0.0f; end_x = 0.0f; end_z = dy;
-                angle = 3.141592f / 4.0f; // 45 graus
-            } 
-            else if (edge == 2) {
-                // Base -> Esquerda (Vetor: -X, -Z)
+                angle = 3.141592f / 4.0f;
+            } else if (edge == 2) {
                 start_x = 0.0f; start_z = dy; end_x = -wy; end_z = 0.0f;
-                angle = -3.141592f / 4.0f; // -45 graus
-            } 
-            else {
-                // Esquerda -> Topo (Vetor: +X, -Z)
+                angle = -3.141592f / 4.0f;
+            } else {
                 start_x = -wy; start_z = 0.0f; end_x = 0.0f; end_z = -dy;
-                angle = -3.0f * 3.141592f / 4.0f; // -135 graus
+                angle = -3.0f * 3.141592f / 4.0f;
             }
-            
-            for (int i = 0; i < 4; ++i) {
-                float t = i / 4.0f; 
-                float x = start_x + t * (end_x - start_x);
-                float z = start_z + t * (end_z - start_z);
-                
-                glm::mat4 model = Matrix_Translate(x, 0.0f, z) * Matrix_Rotate_Y(angle) * Matrix_Scale(s, s, s);
-                glUniformMatrix4fv(g_model_uniform, 1, GL_FALSE, glm::value_ptr(model));
-                DrawVirtualObject("the_bunny");
-            }
+
+            float x = start_x + t * (end_x - start_x);
+            float z = start_z + t * (end_z - start_z);
+
+            glm::mat4 model = Matrix_Translate(x, 0.0f, z) * Matrix_Rotate_Y(angle) * Matrix_Scale(s, s, s);
+            glUniformMatrix4fv(g_model_uniform, 1, GL_FALSE, glm::value_ptr(model));
+            DrawVirtualObject("the_bunny");
         }
 
         // ==========================================================
-        // 3. O CÍRCULO AZUL (8 coelhos - Núcleo Central)
+        // 3. O CÍRCULO AZUL (Órbita polar contínua)
         // ==========================================================
         glUniform1i(g_surface_type_uniform, BLUE_PLASTIC_SURFACE);
         
         float rb = 0.9f;
         
+        // Velocidade angular: Circunferência 2*PI dividida por 12 segundos
+        float blue_velocity = (2.0f * 3.141592f) / period; 
+        
         for (int i = 0; i < 8; ++i) {
-            float theta = i * (3.141592f / 4.0f); 
+            float theta = i * (3.141592f / 4.0f) + current_time * blue_velocity; 
             float x = rb * cos(theta);
             float z = rb * sin(theta);
             
-            // A tangente para a circulação horária acompanha o contorno da equação
             float angle = -theta + (3.141592f / 2.0f); 
             
             glm::mat4 model = Matrix_Translate(x, 0.0f, z) * Matrix_Rotate_Y(angle) * Matrix_Scale(s, s, s);
             glUniformMatrix4fv(g_model_uniform, 1, GL_FALSE, glm::value_ptr(model));
             DrawVirtualObject("the_bunny");
         }
+
         // Imprimimos na tela os ângulos de Euler que controlam a rotação do
         // terceiro cubo.
         TextRendering_ShowEulerAngles(window);
