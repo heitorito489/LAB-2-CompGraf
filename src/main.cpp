@@ -243,9 +243,9 @@ int main(int argc, char* argv[])
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
     // Criamos uma janela do sistema operacional, com 800 colunas e 600 linhas
-    // de pixels, e com título "INF01047 ...".
+    // de pixels, e com título "INF01047".
     GLFWwindow* window;
-    window = glfwCreateWindow(800, 600, "INF01047 - Seu Cartao - Seu Nome", NULL, NULL);
+    window = glfwCreateWindow(800, 600, "INF01047 - 00601416 - Heitor Lima Pedroso", NULL, NULL);
     if (!window)
     {
         glfwTerminate();
@@ -366,7 +366,7 @@ int main(int argc, char* argv[])
         // Note que, no sistema de coordenadas da câmera, os planos near e far
         // estão no sentido negativo! Veja slides 176-204 do documento Aula_09_Projecoes.pdf.
         float nearplane = -0.1f;  // Posição do "near plane"
-        float farplane  = -10.0f; // Posição do "far plane"
+        float farplane  = -50.0f; // Posição do "far plane"
 
         if (g_UsePerspectiveProjection)
         {
@@ -407,33 +407,130 @@ int main(int argc, char* argv[])
         #define JADE_SURFACE         6
 
         // Desenhamos o modelo da esfera
-        model = Matrix_Translate(-2.0f,0.0f,0.0f);
-        glUniformMatrix4fv(g_model_uniform, 1 , GL_FALSE , glm::value_ptr(model));
-        glUniform1i(g_object_id_uniform, SPHERE);
-        glUniform1i(g_surface_type_uniform, RED_VELVET_SURFACE);
-        DrawVirtualObject("the_sphere");
+      #define GOLD_SURFACE         1
+        #define BLUE_PLASTIC_SURFACE 3
+        #define RED_VELVET_SURFACE   4
+        #define JADE_SURFACE         6
 
-        // Desenhamos três coelhos com as cores verde, dourada e azul.
-        const int bunny_surfaces[3] = {
-            JADE_SURFACE,
-            GOLD_SURFACE,
-            BLUE_PLASTIC_SURFACE
-        };
-        for (int i = 0; i < 3; ++i)
-        {
-            model = Matrix_Translate(2.0f * i,0.0f,0.0f);
-            glUniformMatrix4fv(g_model_uniform, 1 , GL_FALSE , glm::value_ptr(model));
-            glUniform1i(g_object_id_uniform, BUNNY);
-            glUniform1i(g_surface_type_uniform, bunny_surfaces[i]);
-            DrawVirtualObject("the_bunny");
-        }
+        // TODO: Aqui implementaremos os laços para desenhar os coelhos da bandeira
 
-        // Desenhamos o plano do chão
-        model = Matrix_Translate(0.0f,-1.0f,0.0f) * Matrix_Scale(4.0f,1.0f,4.0f);
+     // Desenhamos o plano do chão (Escalado para 15x15 para dar margem)
+        model = Matrix_Translate(0.0f,-1.0f,0.0f) * Matrix_Scale(15.0f,1.0f,15.0f);
         glUniformMatrix4fv(g_model_uniform, 1 , GL_FALSE , glm::value_ptr(model));
         glUniform1i(g_object_id_uniform, PLANE);
         DrawVirtualObject("the_plane");
 
+  // ==========================================================
+        // 1. O RETÂNGULO VERDE (24 coelhos - Borda)
+        // ==========================================================
+        glUniform1i(g_object_id_uniform, BUNNY);
+        glUniform1i(g_surface_type_uniform, JADE_SURFACE);
+
+        float s = 0.4f; 
+        
+        // Aresta Superior (8 coelhos): movendo para a DIREITA (+X)
+        for (int i = 0; i < 8; ++i) {
+            float x = -3.15f + i * 0.9f; 
+            float z = -2.5f;
+            float angle = 3.141592f; // 180 graus (Focinho para +X)
+            glm::mat4 model = Matrix_Translate(x, 0.0f, z) * Matrix_Rotate_Y(angle) * Matrix_Scale(s, s, s);
+            glUniformMatrix4fv(g_model_uniform, 1, GL_FALSE, glm::value_ptr(model));
+            DrawVirtualObject("the_bunny");
+        }
+        
+        // Aresta Direita (4 coelhos): movendo para BAIXO (+Z)
+        for (int i = 0; i < 4; ++i) {
+            float x = 3.5f;
+            float z = -1.5f + i * 1.0f; 
+            float angle = 3.141592f / 2.0f; // +90 graus (Focinho para +Z)
+            glm::mat4 model = Matrix_Translate(x, 0.0f, z) * Matrix_Rotate_Y(angle) * Matrix_Scale(s, s, s);
+            glUniformMatrix4fv(g_model_uniform, 1, GL_FALSE, glm::value_ptr(model));
+            DrawVirtualObject("the_bunny");
+        }
+        
+        // Aresta Inferior (8 coelhos): movendo para a ESQUERDA (-X)
+        for (int i = 0; i < 8; ++i) {
+            float x = 3.15f - i * 0.9f; 
+            float z = 2.5f;
+            float angle = 0.0f; // 0 graus (Focinho para -X)
+            glm::mat4 model = Matrix_Translate(x, 0.0f, z) * Matrix_Rotate_Y(angle) * Matrix_Scale(s, s, s);
+            glUniformMatrix4fv(g_model_uniform, 1, GL_FALSE, glm::value_ptr(model));
+            DrawVirtualObject("the_bunny");
+        }
+        
+        // Aresta Esquerda (4 coelhos): movendo para CIMA (-Z)
+        for (int i = 0; i < 4; ++i) {
+            float x = -3.5f;
+            float z = 1.5f - i * 1.0f; 
+            float angle = -3.141592f / 2.0f; // -90 graus (Focinho para -Z)
+            glm::mat4 model = Matrix_Translate(x, 0.0f, z) * Matrix_Rotate_Y(angle) * Matrix_Scale(s, s, s);
+            glUniformMatrix4fv(g_model_uniform, 1, GL_FALSE, glm::value_ptr(model));
+            DrawVirtualObject("the_bunny");
+        }
+
+        // ==========================================================
+        // 2. O LOSANGO AMARELO (16 coelhos - Intermediário)
+        // ==========================================================
+        glUniform1i(g_surface_type_uniform, GOLD_SURFACE);
+        
+        float wy = 2.6f;
+        float dy = 1.8f;
+        
+        for (int edge = 0; edge < 4; ++edge) {
+            float start_x, start_z, end_x, end_z, angle;
+            
+            // Fixando os ângulos empiricamente de acordo com as diagonais horárias
+            if (edge == 0) {
+                // Topo -> Direita (Vetor: +X, +Z)
+                start_x = 0.0f; start_z = -dy; end_x = wy; end_z = 0.0f;
+                angle = 3.0f * 3.141592f / 4.0f; // 135 graus
+            } 
+            else if (edge == 1) {
+                // Direita -> Base (Vetor: -X, +Z)
+                start_x = wy; start_z = 0.0f; end_x = 0.0f; end_z = dy;
+                angle = 3.141592f / 4.0f; // 45 graus
+            } 
+            else if (edge == 2) {
+                // Base -> Esquerda (Vetor: -X, -Z)
+                start_x = 0.0f; start_z = dy; end_x = -wy; end_z = 0.0f;
+                angle = -3.141592f / 4.0f; // -45 graus
+            } 
+            else {
+                // Esquerda -> Topo (Vetor: +X, -Z)
+                start_x = -wy; start_z = 0.0f; end_x = 0.0f; end_z = -dy;
+                angle = -3.0f * 3.141592f / 4.0f; // -135 graus
+            }
+            
+            for (int i = 0; i < 4; ++i) {
+                float t = i / 4.0f; 
+                float x = start_x + t * (end_x - start_x);
+                float z = start_z + t * (end_z - start_z);
+                
+                glm::mat4 model = Matrix_Translate(x, 0.0f, z) * Matrix_Rotate_Y(angle) * Matrix_Scale(s, s, s);
+                glUniformMatrix4fv(g_model_uniform, 1, GL_FALSE, glm::value_ptr(model));
+                DrawVirtualObject("the_bunny");
+            }
+        }
+
+        // ==========================================================
+        // 3. O CÍRCULO AZUL (8 coelhos - Núcleo Central)
+        // ==========================================================
+        glUniform1i(g_surface_type_uniform, BLUE_PLASTIC_SURFACE);
+        
+        float rb = 0.9f;
+        
+        for (int i = 0; i < 8; ++i) {
+            float theta = i * (3.141592f / 4.0f); 
+            float x = rb * cos(theta);
+            float z = rb * sin(theta);
+            
+            // A tangente para a circulação horária acompanha o contorno da equação
+            float angle = -theta + (3.141592f / 2.0f); 
+            
+            glm::mat4 model = Matrix_Translate(x, 0.0f, z) * Matrix_Rotate_Y(angle) * Matrix_Scale(s, s, s);
+            glUniformMatrix4fv(g_model_uniform, 1, GL_FALSE, glm::value_ptr(model));
+            DrawVirtualObject("the_bunny");
+        }
         // Imprimimos na tela os ângulos de Euler que controlam a rotação do
         // terceiro cubo.
         TextRendering_ShowEulerAngles(window);
